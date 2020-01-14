@@ -74,7 +74,7 @@ clean_l$value_recode <- ifelse(clean_l$value == "Not a Sport - Don't Feel Strong
 
 #####################################################
 ##
-## Plot 1: Overall distribution - everyone loves fruits
+## Plot 1: Overall distributions on average
 ##
 #####################################################
 
@@ -90,12 +90,15 @@ overall_bar_plot <- ggplot(overall_stats,aes(x=value,y=freq,fill=value)) +
   geom_bar(stat= "identity",color="black") +
   geom_text(aes(x=value,y=freq,label=percent(round(freq,2))),vjust = -.5) +
   scale_fill_manual(values = c("#1a9641","#a6d96a","#fdae61","#d7191c","#D3D3D3","#D3D3D3")) +
+  scale_x_discrete(labels = function(grouping) str_wrap(grouping, width = 20)) +
   scale_y_continuous(labels = scales::percent) +
   labs(title = "Average Sports Rankings",
        subtitle = paste("among a very non-random sample of people with opinions about sports")) +
   guides(fill=F) +
   theme(axis.title = element_blank(),
         axis.text = element_text(size=12))
+
+ggsave(plot = overall_bar_plot, "images/1.0 Overall Ratings on Average.png", w = 10.67, h = 8,type = "cairo-png")
 
 stats <- clean_l %>%
   filter(value != "") %>%
@@ -146,10 +149,70 @@ sports_heatmap_plot <- ggplot(stats,aes(x=value,y=reorder(variable,a_freq))) +
         axis.text = element_text(size=12),
         legend.key.width = unit(1, "cm")) +
   scale_y_discrete(expand = c(0, 0)) +
-  scale_x_discrete(expand = c(0, 0))
+  scale_x_discrete(expand = c(0, 0),labels = function(grouping) str_wrap(grouping, width = 20))
 
-ggsave(plot = sports_heatmap_plot, "sports_heatmap_plot.png", w = 10.67, h = 8,type = "cairo-png")
+ggsave(plot = sports_heatmap_plot, "images/2.0 Ratings by Sport.png", w = 10.67, h = 8,type = "cairo-png")
 
+#####################################################
+##
+## Correlations
+##
+#####################################################
+
+sports_recode <- c("Chess_recode","eSports..Videogames._recode","Ping.Pong..Table.Tennis._recode","Foosball_recode","Skiing_recode",
+                   "Snowboarding_recode","Cycling_recode","Bowling_recode","Golf_recode","Ultimate.Frisbee_recode","Sailing_recode",
+                   "Rowing..Crew._recode","Frisbee.Golf_recode","Kickball_recode","Scrabble_recode","Cornhole_recode","Pickleball_recode",
+                   "NASCAR_recode","Crossfit_recode")
+
+clean_filtered <- clean %>%
+  select(sports_recode)
+
+correlations <- cor(clean_filtered,use="complete.obs")
+
+wide_corr <- melt(correlations)
+
+drop <- c("id")
+
+wide_corr <- wide_corr %>%
+  filter(Var1 != "id" & Var2 != "id") %>%
+  mutate(Var1 = gsub(pattern = "_recode",replacement = "",x=Var1),
+         Var2 = gsub(pattern = "_recode",replacement = "",x=Var2))
+
+correlations_matrix <- ggplot(wide_corr, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile(aes(fill = value),colour = "white") +
+  geom_text(aes(x=Var1,y=Var2,label=round(value,2))) +
+  scale_fill_gradientn(colours = c("red","white","#1a9641"), 
+                       values = rescale(c(-.3,0,.9)),
+                       guide = "colorbar", limits=c(-.3,.9)) +
+  labs(title = "Sports Correlation Matrix",
+       subtitle = paste("among a very non-random sample of",count,"people with opinions about what is & isn't a sport"),
+       fill = "R-Squared") +
+  theme(legend.position = "bottom",
+        axis.title = element_blank(),
+        axis.text = element_text(size=12),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.key.width = unit(1, "cm"))
+
+ggsave(plot = correlations_matrix, "images/3.0 Correlation Matrix.png", w = 10.67, h = 8,type = "cairo-png")
+
+#####################################################
+##
+## Demographics
+##
+#####################################################
+
+demographic_plots <- function(df,demo) {
+  
+  demo <- df$demo
+  
+  print(demo)
+  
+  new_df <- survey_data %>%
+    select(sports,demo) 
+  
+  return(new_df)
+  
+}
 
 clean_demos <- survey_data %>%
   select(sports,
@@ -189,9 +252,9 @@ sports_heatmap_plot <- ggplot(demos_w,aes(x=variable,y=sport)) +
         axis.text = element_text(size=12),
         legend.key.width = unit(1, "cm")) +
   scale_y_discrete(expand = c(0, 0)) +
-  scale_x_discrete(expand = c(0, 0))
+  scale_x_discrete(expand = c(0, 0),labels = function(grouping) str_wrap(grouping, width = 20))
 
-ggsave(plot = sports_heatmap_plot, "sports_heatmap_plot.png", w = 10.67, h = 8,type = "cairo-png")
+ggsave(plot = sports_heatmap_plot, "images/4.0 Sport Ratings by Gender.png", w = 10.67, h = 8,type = "cairo-png")
 
 survey_data$sports_fans <- ifelse((survey_data$How.often.would.you.say.you.watch.televised.sports.or.sports.content.on.channels.like.ESPN == "A few times a week" |
                                     survey_data$How.often.would.you.say.you.watch.televised.sports.or.sports.content.on.channels.like.ESPN == "Daily" | 
@@ -246,7 +309,6 @@ ggsave(plot = sports_heatmap_plot, "sports_heatmap_plot.png", w = 10.67, h = 8,t
 ##
 #####################################################
 
-
 clean <- survey_data %>%
   select(sports,gender_recode,
          income_recode,
@@ -300,6 +362,7 @@ for(f in sports) {
   model_results <- rbind(model_results,model_df)
   
 }
+
 
 #####################################################
 ##
