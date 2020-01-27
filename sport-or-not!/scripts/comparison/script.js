@@ -3,16 +3,13 @@ function random_sport(){
 
 	d3.select("#sport-stats svg").remove();
 
-	var sports = ["Chess","eSports..Videogames.","Ping.Pong..Table.Tennis.","Foosball","Skiing",
-            "Snowboarding","Cycling","Bowling","Golf","Ultimate.Frisbee","Sailing",
-            "Rowing..Crew.","Frisbee.Golf","Kickball","Scrabble","Cornhole","Pickleball",
-            "NASCAR","Crossfit"]
+	var sports = ["Chess","eSports (Videogames)","Ping Pong (Table Tennis)","Foosball","Skiing",
+            "Snowboarding","Cycling","Bowling","Golf","Ultimate Frisbee","Sailing",
+            "Rowing (Crew)","Frisbee Golf","Kickball","Scrabble","Cornhole","Pickleball"]
 
 	randomItem = sports[Math.floor(Math.random()*sports.length)];
 	document.getElementById("sport").innerHTML = 'How do you rank <b>' + randomItem + "</b>?"
 	document.getElementById("user-pick").innerHTML = ""
-
-
 }
 
 function msg(selected_value){
@@ -32,11 +29,10 @@ function msg(selected_value){
 		results = tabletop.sheets("Form Responses 1")
 		main_data = results.elements
 
-		var denom = main_data.length	
-		
-		randomItem = randomItem.replace(".", " ")
+		//randomItem = randomItem.replace(".", " ")
 		console.log(randomItem)	
 
+		var denom = main_data.length
 
 		var_select = 'Are these things sports? [' + randomItem + ']'
 
@@ -67,13 +63,14 @@ function msg(selected_value){
 
 		// set the dimensions and margins of the graph
 		var margin = {top: 20, right: 20, bottom: 30, left: 40},
-			width = 960 - margin.left - margin.right,
+			width = 760 - margin.left - margin.right,
 			height = 500 - margin.top - margin.bottom;
 
 		// set the ranges
 		var x = d3.scaleBand()
 		      .range([0, width])
-		      .padding(0.1);
+		      .padding(0.1)
+
 		var y = d3.scaleLinear()
 		      .range([height, 0]);
 
@@ -122,12 +119,37 @@ function msg(selected_value){
 		// add the x Axis
 		svg.append("g")
 		  .attr("transform", "translate(0," + height + ")")
-		  .call(d3.axisBottom(x));
+		  .call(d3.axisBottom(x))
+		  .selectAll(".tick text")
+		  .call(wrap, x.bandwidth());
 
 		// add the y Axis
 		svg.append("g")
 		  .call(d3.axisLeft(y));
 
+		function wrap(text, width) {
+		  text.each(function() {
+		    var text = d3.select(this),
+		        words = text.text().split(/\s+/).reverse(),
+		        word,
+		        line = [],
+		        lineNumber = 0,
+		        lineHeight = 1.1, // ems
+		        y = text.attr("y"),
+		        dy = parseFloat(text.attr("dy")),
+		        tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em")
+		    while (word = words.pop()) {
+		      line.push(word)
+		      tspan.text(line.join(" "))
+		      if (tspan.node().getComputedTextLength() > width) {
+		        line.pop()
+		        tspan.text(line.join(" "))
+		        line = [word]
+		        tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", `${++lineNumber * lineHeight + dy}em`).text(word)
+		      }
+		    }
+		  })
+		}			
 	}
 	renderSpreadsheetData();
 }
