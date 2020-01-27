@@ -12,6 +12,7 @@ library(viridis)
 library(tidytext)
 library(tm)
 library(ggnewscale)
+library(stringr)
 
 #####################################################
 ##
@@ -61,9 +62,27 @@ survey_data$sports_fans <- ifelse((survey_data$How.often.would.you.say.you.watch
                                     (survey_data$Which.one.of.the.following.best.describes.you == "Avid mainstream/traditional sports fan" |
                                        survey_data$Which.one.of.the.following.best.describes.you == "Casual mainstream/traditional sports fan"),"Sports Fans","Non-Sports Fans")
 
-
 survey_data$pe_recode <- ifelse(survey_data$Please.rate.your.opinion.towards.P.E..Gym.Class.when.you.were.in.school <= 2,"Unfavorable",
                                ifelse(survey_data$Please.rate.your.opinion.towards.P.E..Gym.Class.when.you.were.in.school >= 4,"Favorable",NA))
+
+survey_data$num_sports_played <- str_count(survey_data$Which.of.the.following.have.you.played.in.the.past.year,",") + 1
+
+survey_data$mentioned_physical <- ifelse(grepl("physical",
+                                               survey_data$In.a.few.words..what.makes.a.sport.a.sport.in.your.opinion,ignore.case = T),1,0)
+
+survey_data$mentioned_physical <- factor(survey_data$mentioned_physical,
+                                         levels = c("0","1"),
+                                         labels = c("No Physical Mention","Mentioned Physical"))
+
+survey_data <- survey_data %>%
+  mutate(num_sports_quartiles = ntile(num_sports_played,4))
+
+survey_data$age_recode <- ifelse(survey_data$What.is.your.age == "40-44" | survey_data$What.is.your.age == "45-49" | survey_data$What.is.your.age == "50+","40+",
+                                 ifelse(survey_data$What.is.your.age == "18-24" | survey_data$What.is.your.age == "25-29","18-29",
+                                        ifelse(survey_data$What.is.your.age == "30-34"| survey_data$What.is.your.age == "35-39","30-39",
+                                            as.character(survey_data$What.is.your.age))))
+
+count <- nrow(survey_data)
 
 ## reshape sports data to long for top-level aggregation
 
@@ -88,7 +107,6 @@ clean_l$variable <- gsub(x = clean_l$variable,pattern = "  ",replacement=" ")
 
 clean_l$variable <- ifelse(clean_l$variable == "eSports Videogames","eSports/Videogames",
                            ifelse(clean_l$variable == "Ping Pong Table Tennis","Ping Pong/Table Tennis",clean_l$variable))
-
 
 #####################################################
 ##
@@ -159,8 +177,6 @@ stats <- merge(stats,stats_a_tier)
 stats$value <- factor(stats$value,levels = c("Sport - Feel Strongly","Sport - Don't Feel Strongly",
                                              "Not a Sport - Don't Feel Strongly","Not a Sport - Feel Strongly"))
 
-count <- nrow(survey_data)
-
 sports_heatmap_plot <- ggplot(stats,aes(x=value,y=reorder(variable,a_freq))) +
   geom_tile(aes(fill = freq),colour = "white") +
   geom_text(aes(x=value,y=reorder(variable,a_freq),label=percent(round(freq,3)),color = as.numeric(freq) > 0.25)) +
@@ -206,18 +222,19 @@ overall_sports_w <- merge(overall_sports_w,stats_strong,by="variable")
 
 sports_bar_plot <- ggplot(overall_sports_w,aes(x=reorder(variable,ruling),y=ruling,fill=strong_freq)) +
   geom_bar(stat="identity",color="black") +
-  geom_text(aes(x=variable,y=ruling,label=percent(round(ruling,2)))) +
+  geom_text(aes(x=variable,y=ruling + .04 * sign(ruling),label=percent(round(ruling,2)))) +
   coord_flip() +
   scale_fill_distiller(palette = "Spectral",direction = 1,labels=scales::percent) +
   labs(title = "Overall Sports Rankings - Difference Between Total Sport & Not Sport",
-       subtitle = paste("among a very non-random sample of",count,"people with opinions about what is & isn't a sport")) +
+       subtitle = paste("among a very non-random sample of",count,"people with opinions about what is & isn't a sport"),
+       fill="% Strongly Sport - Not Sport") +
   theme(legend.position = "bottom",
         axis.title = element_blank(),
         axis.text = element_text(size=12),
-        legend.key.width = unit(1, "cm")) 
+        legend.key.width = unit(1, "cm")) +
+  scale_y_continuous(labels = scales::percent)
 
 ggsave(plot = sports_bar_plot, "images/2.0A Ratings by Sport.png", w = 10.67, h = 8,type = "cairo-png")
-
 
 #####################################################
 ##
@@ -226,11 +243,14 @@ ggsave(plot = sports_bar_plot, "images/2.0A Ratings by Sport.png", w = 10.67, h 
 #####################################################
 
 clean <- survey_data %>%
-  select(sports,gender_recode,
+  select(sports,
+         gender_recode,
          income_recode,
-         `What.is.your.age`,
-         race_recode) %>%
-  rename(age_recode = `What.is.your.age`)
+         age_recode,
+         race_recode,
+         pe_recode,
+         mentioned_physical,
+         sports_fans)
 
 recode_sports <- function(df,sport) {
   new_var <- paste0(sport,"_recode")
@@ -243,11 +263,6 @@ recode_sports <- function(df,sport) {
                                                     NA)))))
   return(as.data.frame(df))
 }
-
-sports <- c("Chess","eSports..Videogames.","Ping.Pong..Table.Tennis.","Foosball","Skiing",
-            "Snowboarding","Cycling","Bowling","Golf","Ultimate.Frisbee","Sailing",
-            "Rowing..Crew.","Frisbee.Golf","Kickball","Scrabble","Cornhole","Pickleball",
-            "NASCAR","Crossfit")
 
 for (f in sports) {
   clean <- recode_sports(clean,f)
@@ -315,8 +330,8 @@ demographic_plots <- function(df,demo,label) {
     ## Plot Average Sport Scores
     ##
     #########################################
-    
-    new_df <- survey_data %>%
+  
+    new_df <- df %>%
       select(sports,demo) 
     
     new_df_l <- melt(new_df,id.vars = demo)
@@ -324,6 +339,7 @@ demographic_plots <- function(df,demo,label) {
     new_df_l$value_recode <- ifelse(new_df_l$value == "Not a Sport - Don't Feel Strongly" | new_df_l$value == "Not a Sport - Feel Strongly","Not a Sport!",
                                          ifelse(new_df_l$value == "Sport - Don't Feel Strongly" | new_df_l$value == "Sport - Feel Strongly","Sport!",
                                                 new_df_l$value))
+    
     demos <- new_df_l %>%
       ungroup() %>%
       group_by(new_df_l[,demo],variable,value_recode) %>%
@@ -331,8 +347,22 @@ demographic_plots <- function(df,demo,label) {
       mutate(freq=n/sum(n)) %>%
       filter(value_recode != "Never heard of/Don't know what this is" & 
                `new_df_l[, demo]` != "Other" & value_recode != "" &
-               `new_df_l[, demo]` != "Not sure/Refuse") %>%
+               `new_df_l[, demo]` != "Not sure/Refuse" & 
+               value_recode == "Sport!") %>%
       select(`new_df_l[, demo]`,variable,value_recode,freq)
+    
+    demos_strong <- new_df_l %>%
+      ungroup() %>%
+      group_by(new_df_l[,demo],variable,value) %>%
+      summarise(n=n()) %>%
+      mutate(freq=n/sum(n)) %>%
+      filter((value == "Not a Sport - Feel Strongly" | value == "Sport - Feel Strongly") & 
+               `new_df_l[, demo]` != "Other" & value != "" &
+               `new_df_l[, demo]` != "Not sure/Refuse") %>%
+      rename(value_recode = value) %>%
+      select(`new_df_l[, demo]`,variable,value_recode,freq)    
+    
+    demos <- rbind(demos,demos_strong)
     
     demos_all <- new_df_l %>%
       ungroup() %>%
@@ -341,23 +371,47 @@ demographic_plots <- function(df,demo,label) {
       mutate(freq=n/sum(n)) %>%
       filter(value_recode != "Never heard of/Don't know what this is" & 
                `new_df_l[, demo]` != "Other" & value_recode != "" &
-               `new_df_l[, demo]` != "Not sure/Refuse") %>%
+               `new_df_l[, demo]` != "Not sure/Refuse" &
+               value_recode == "Sport!") %>%
       select(`new_df_l[, demo]`,value_recode,freq) %>%
       mutate(variable = "All Sports (Mean)")
     
     demos <- rbind(demos_all,demos)
     
+    demos_all_strong <- new_df_l %>%
+      ungroup() %>%
+      group_by(new_df_l[,demo],value) %>%
+      summarise(n=n()) %>%
+      mutate(freq=n/sum(n)) %>%
+      filter((value == "Not a Sport - Feel Strongly" | value == "Sport - Feel Strongly") & 
+               `new_df_l[, demo]` != "Other" &
+               `new_df_l[, demo]` != "Not sure/Refuse") %>%
+      rename(value_recode = value) %>%
+      select(`new_df_l[, demo]`,value_recode,freq) %>%
+      mutate(variable = "All Sports (Mean)")  
+    
+    demos <- rbind(demos_all_strong,demos)
+
+    ## zero counts
+    
+    demos <- demos %>%
+      complete(variable,nesting(value_recode))
+        
+    demos$freq <- ifelse(is.na(demos$freq),0,demos$freq)
+    
     demos_l <- dcast(demos,variable + value_recode  ~ `new_df_l[, demo]`, value.var = c("freq"))
     
     ## for specific "binary" demos: calculate differences
     
-    if(demo == "gender_recode" | demo == "sports_fans" | demo == "race_recode" | demo == "pe_recode"){ 
+    if(demo == "gender_recode" | demo == "sports_fans" | demo == "race_recode" | demo == "pe_recode" | demo == "mentioned_physical"){ 
     
       demos_l$zdiff <- demos_l[,3] - demos_l[,4]
 
     }
     
     demos_l <- demos_l %>% rename(sport = variable)
+    
+    ## determine %Sport for sort order
     
     stats_a_tier <- demos_l %>%
       ungroup() %>%
@@ -369,12 +423,19 @@ demographic_plots <- function(df,demo,label) {
     demos_l <- merge(demos_l,stats_a_tier) 
     
     demos_w <- melt(demos_l,id.vars = c("value_recode","sport","sport_freq"))
+
+    ## reorder columns
+    
+    demos_w$value_recode <- factor(demos_w$value_recode,
+                                   levels = c("Sport!","Sport - Feel Strongly","Not a Sport - Feel Strongly"))
+    
+    ## plotting!
     
     sports_heatmap_plot <- ggplot(demos_w,aes(x=variable,y=reorder(sport,sport_freq))) +
       geom_tile(data=filter(demos_w,variable != 'zdiff'),aes(fill = value),colour = "white") +
       scale_fill_viridis(name="",labels = scales::percent) +
       facet_wrap(~value_recode) +
-      new_scale_fill() +
+      ggnewscale::new_scale_fill() +
       geom_tile(data = filter(demos_w, variable == 'zdiff'), 
                  aes(fill = value)) + 
       scale_fill_distiller(palette ="Spectral",direction = 1,guide = F) +
@@ -385,61 +446,25 @@ demographic_plots <- function(df,demo,label) {
       theme(legend.position = "bottom",
             axis.title = element_blank(),
             axis.text = element_text(size=12),
+            strip.text = element_text(size=12),
             legend.key.width = unit(1, "cm")) +
       scale_y_discrete(expand = c(0, 0)) +
-      scale_x_discrete(expand = c(0, 0),labels = function(grouping) str_wrap(grouping, width = 20))
+      scale_x_discrete(expand = c(0, 0),labels = function(grouping) str_wrap(grouping, width = 15))
     
     ggsave(plot = sports_heatmap_plot, paste0("images/4.0 Sport Ratings by ",label,".png"), w = 10.67, h = 8,type = "cairo-png")
   
-  #############################################
-  ##
-  ## Plot Average Sport Scores
-  ##
-  #############################################  
-    
-  new_df_l$sport_score <- ifelse(new_df_l$value == "Not a Sport - Don't Feel Strongly",0,
-                                       ifelse(new_df_l$value == "Not a Sport - Feel Strongly",.25,
-                                              ifelse(new_df_l$value == "Sport - Don't Feel Strongly",.75,
-                                                     ifelse(new_df_l$value == "Sport - Feel Strongly",1,NA))))
-  
-  new_df_l <- new_df_l %>%
-    filter(!is.na(sport_score))
-  
-  avg_ratings_by_demo <- new_df_l %>%
-    group_by(new_df_l[,demo],variable) %>%
-    summarise(avg_rating = mean(sport_score))
-  
-  avg_ratings_by_demo <- dcast(avg_ratings_by_demo,variable ~ `new_df_l[, demo]`, value.var = "avg_rating")
-  
-  avg_ratings_by_demo <- avg_ratings_by_demo %>% rename(sport = variable)
-  
-  avg_ratings_by_demo <- melt(avg_ratings_by_demo)
-  
-  sports_heatmap_avgs_plot <- ggplot(avg_ratings_by_demo,aes(x=variable,y=reorder(sport,value))) +
-    geom_tile(aes(fill = value),colour = "white") +
-    geom_text(aes(x=variable,y=sport,label=round(value,3),color = as.numeric(value) > 0.30)) +
-    scale_color_manual(guide = FALSE, values = c("white", "black")) +
-    scale_fill_viridis(name="",labels = scales::percent) +
-    labs(title = "Overall Sports Rankings",
-         subtitle = paste("among a very non-random sample of people with opinions about what is & isn't a sport")) +
-    theme(legend.position = "bottom",
-          axis.title = element_blank(),
-          axis.text = element_text(size=12),
-          legend.key.width = unit(1, "cm")) +
-    scale_y_discrete(expand = c(0, 0)) +
-    scale_x_discrete(expand = c(0, 0))
-  
-  ggsave(plot = sports_heatmap_avgs_plot, paste0("images/4.0A Sport Average Ratings by ",label,".png"), w = 10.67, h = 8,type = "cairo-png")
-  
 }
 
-## Now plot all demos
+## Now plot all demos of interest
 
 demographic_plots(clean,"gender_recode","Gender")
 demographic_plots(clean,"sports_fans","Sports Fans")
 demographic_plots(clean,"income_recode","Income")
 demographic_plots(clean,"race_recode","Race")
 demographic_plots(clean,"pe_recode","PE Therm")
+demographic_plots(clean,"num_sports_quartiles","Number of Sports Played")
+demographic_plots(clean,"mentioned_physical","Mentioned Physical")
+demographic_plots(clean,"age_recode","Age")
 
 #####################################################
 ##
@@ -497,6 +522,13 @@ survey_data$sports <- ifelse(survey_data$sports_fans == "Sports Fans",1,0)
 
 model <- glm(data = survey_data,formula = pe_cont ~ male + sports,family = "binomial")
 
+## export model results to table
+stargazer(model,
+          dep.var.labels=c("Gym Class Favorability"),
+          covariate.labels=c("Gender (Men=1)","Sports Fandom (Sports Fan=1)"),
+          type = "html",
+          out = "images/regression_table.html")
+
 model_df <- as.data.frame(summary.glm(model)$coefficients,row.names = F)
 model_df$iv <- rownames(as.data.frame(summary.glm(model)$coefficients))
 model_df$odds <- exp(model_df$Estimate)
@@ -514,10 +546,10 @@ cor(df,method = "pearson", use = "complete.obs")
 #####################################################
 
 clean$male <- ifelse(clean$gender_recode == "Male",1,0)
-clean$white <- ifelse(clean$race_recode == "White/Caucasian",1,0)
-clean$youth <- ifelse(clean$age_recode == "18-24" | 
-                        clean$age_recode == "25-29",1,0)
+clean$white <- ifelse(clean$race_recode == "White",1,0)
+clean$youth <- ifelse(clean$age_recode == "18-29",1,0)
 clean$low_income <- ifelse(clean$income_recode == "Under $50,000",1,0)
+clean$sports_fan <- ifelse(clean$sports_fans == "Sports Fans",1,0)
 
 model_results <- data.frame()
 
@@ -528,17 +560,36 @@ for(f in sports) {
   clean_df <- clean %>%
     filter(clean[,f] != "")
   
-  model <- glm(get(dv) ~ male + white + youth + low_income, family = "binomial",data=clean_df)
+  model <- glm(get(dv) ~ male + white + youth + low_income + sports_fan, 
+               family = "binomial",
+               data=clean_df)
   
   model_df <- as.data.frame(summary.glm(model)$coefficients,row.names = F)
   model_df$iv <- rownames(as.data.frame(summary.glm(model)$coefficients))
   model_df$sport <- f
   model_df$odds <- exp(model_df$Estimate)
   
+  
+  ci <- as.data.frame(confint(model),row.names=F) %>%
+    filter(!is.na(`2.5 %`))
+  
+  ci$iv <- rownames(as.data.frame(summary.glm(model)$coefficients))
+  
+  model_df <- merge(ci,model_df,by="iv")
+  
+
   model_results <- rbind(model_results,model_df)
   
 }
 
+## plot regression coefs
+
+ggplot(model_results, aes(iv, Estimate,color=iv))+
+  facet_wrap(~sport) +
+  geom_point() +
+  coord_flip() + 
+  geom_hline(yintercept = 0) +
+  geom_pointrange(aes(ymin = `2.5 %`, ymax = `97.5 %`))
 
 #####################################################
 ##
@@ -546,15 +597,58 @@ for(f in sports) {
 ##
 #####################################################
 
-text <- as.character(survey_data$In.a.few.words..what.makes.a.sport.a.sport.in.your.opinion)
-
-filler_words <- c(" and "," the "," a "," be "," is "," to "," it ")
-
-text = removeWords(as.character(survey_data$In.a.few.words..what.makes.a.sport.a.sport.in.your.opinion),
-                               stopwords("english"))
-
-bigrams <- survey_data %>%
-  unnest_tokens(bigram,text, token = "ngrams", n = 2) %>%
+most_common_words <- survey_data %>%
+  unnest_tokens(bigram,In.a.few.words..what.makes.a.sport.a.sport.in.your.opinion, token = "ngrams", n = 1) %>%
   count(bigram, sort = TRUE) %>%
-  filter(!is.na(bigram))
+  filter(!is.na(bigram) & bigram != "sport" & bigram != "sports") %>%
+  filter(!bigram %in% stop_words$word) %>%
+  mutate(type = "Most Common Words") %>%
+  top_n(10,n)
   
+bigrams <- survey_data %>%
+  unnest_tokens(bigram,In.a.few.words..what.makes.a.sport.a.sport.in.your.opinion, token = "ngrams", n = 2) %>%
+  count(bigram, sort = TRUE) %>%
+  filter(!is.na(bigram)) %>%
+  separate(bigram,c("word1","word2"),sep=" ") %>%
+  filter(!word1 %in% stop_words$word & !word2 %in% stop_words$word) %>%
+  mutate(bigram = paste(word1,word2),
+         type = "Most Common Word Pairs") %>%
+  top_n(8,n) %>%
+  select(bigram,n,type)
+
+ngrams <- rbind(bigrams,most_common_words)
+
+bigram_plot <- ggplot(ngrams,aes(x=reorder(bigram,n),y=n,fill="#900C3F")) +
+  geom_bar(stat="identity",color="black") + 
+  facet_wrap(~type,scales = "free") +
+  coord_flip() +
+  scale_fill_manual(values = c("#900C3F")) +
+  geom_text(aes(x=bigram,y=n,label=n,hjust = -.25),size=3) +
+  labs(title = "Most Commonly Used Words to Describe/Define Sports",
+       subtitle = paste("among a very non-random sample of people with opinions about sports"),
+       y="Unique number of times mentioned",
+       x="") +
+  guides(fill=F) +
+  theme(axis.text = element_text(size=8))
+
+ggsave(plot = bigram_plot, "images/N-Grams.png", w = 8, h = 4,type = "cairo-png")
+
+
+bigrams_fandom <- survey_data %>%
+  group_by(sports_fans) %>%
+  unnest_tokens(bigram,In.a.few.words..what.makes.a.sport.a.sport.in.your.opinion, token = "ngrams", n = 2) %>%
+  count(bigram, sort = TRUE) %>%
+  filter(!is.na(bigram)) %>%
+  separate(bigram,c("word1","word2"),sep=" ") %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word)
+
+
+mcw_phys <- survey_data %>%
+  group_by(mentioned_physical) %>%
+  unnest_tokens(bigram,In.a.few.words..what.makes.a.sport.a.sport.in.your.opinion, token = "ngrams", n = 1) %>%
+  count(bigram, sort = TRUE) %>%
+  filter(!is.na(bigram)) %>%
+  filter(!bigram %in% stop_words$word)
+
+

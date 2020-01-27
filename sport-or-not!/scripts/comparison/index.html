@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tabletop.js/1.4.3/tabletop.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.10/lodash.min.js"></script>
+
+<link rel="stylesheet" type="text/css" href="style.css">
+
+</head>
+	<body>
+
+		<script type="text/javascript" src="script.js"></script>
+
+		<body onload="random_sport()">
+
+		<div id='sport' style="font-family:Helvetica;font-size:18pt" align="center"></div>
+		<div id='user-pick' style="font-family:Helvetica;" align="center"></div>
+
+		<div align="center" id="sport-stats"></div>
+
+		<div style="text-align:center;">
+			<input class="button" type="button" value="Sport - Feel Strongly" onclick="msg('Sport - Feel Strongly')">
+			<input class="button button2" type="button" value="Sport - Don&#39;t Feel Strongly" onclick="msg('Sport - Dont Feel Strongly')">
+			<input class="button button4" type="button" value="Not a Sport - Don&#39;t Feel Strongly" onclick="msg('Not a Sport - Dont Feel Strongly')">
+			<input class="button button5" type="button" value="Not a Sport - Feel Strongly" onclick="msg('Not a Sport - Feel Strongly')">
+			<input class="button button6" type="button" value="Never heard of/Don&#39;t know what this is" onclick='msg("")'>
+		</div>
+		
+		<div style="text-align:center;">	
+			<input class="button button6" type="button" value="Next Sport" onclick="random_sport()">
+		</div>		
+
+	</body>
+</html>	
