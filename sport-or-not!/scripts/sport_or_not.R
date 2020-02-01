@@ -568,15 +568,13 @@ for(f in sports) {
   model_df$iv <- rownames(as.data.frame(summary.glm(model)$coefficients))
   model_df$sport <- f
   model_df$odds <- exp(model_df$Estimate)
-  
-  
+
   ci <- as.data.frame(confint(model),row.names=F) %>%
     filter(!is.na(`2.5 %`))
   
   ci$iv <- rownames(as.data.frame(summary.glm(model)$coefficients))
   
   model_df <- merge(ci,model_df,by="iv")
-  
 
   model_results <- rbind(model_results,model_df)
   
@@ -584,12 +582,18 @@ for(f in sports) {
 
 ## plot regression coefs
 
-ggplot(model_results, aes(iv, Estimate,color=iv))+
+regression_plot <- ggplot(model_results, aes(iv, Estimate,color=sig))+
   facet_wrap(~sport) +
   geom_point() +
   coord_flip() + 
   geom_hline(yintercept = 0) +
-  geom_pointrange(aes(ymin = `2.5 %`, ymax = `97.5 %`))
+  geom_pointrange(aes(ymin = `2.5 %`, ymax = `97.5 %`)) +
+  labs(title = "Sport or Not?: Regression Coefficients",
+       x = "Regression Coefficient") +
+  theme(axis.title.y = element_blank(),
+        legend.position = "none")
+
+ggsave(plot = regression_plot, "images/Regression Coefs.png", w = 10, h = 6,type = "cairo-png")
 
 #####################################################
 ##
