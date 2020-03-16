@@ -242,6 +242,11 @@ ggsave(plot = sports_bar_plot, "images/2.0A Ratings by Sport.png", w = 10.67, h 
 ##
 #####################################################
 
+sports <- c("Chess","eSports..Videogames.","Ping.Pong..Table.Tennis.","Foosball","Skiing",
+            "Snowboarding","Cycling","Bowling","Golf","Ultimate.Frisbee","Sailing",
+            "Rowing..Crew.","Frisbee.Golf","Kickball","Scrabble","Cornhole","Pickleball",
+            "NASCAR","Crossfit")
+
 clean <- survey_data %>%
   select(sports,
          gender_recode,
@@ -250,7 +255,8 @@ clean <- survey_data %>%
          race_recode,
          pe_recode,
          mentioned_physical,
-         sports_fans)
+         sports_fans,
+         num_sports_quartiles)
 
 recode_sports <- function(df,sport) {
   new_var <- paste0(sport,"_recode")
@@ -296,7 +302,6 @@ wide_corr$Var2 <- gsub(x = wide_corr$Var2,pattern = "  ",replacement=" ")
 
 wide_corr$Var2 <- ifelse(wide_corr$Var2 == "eSports Videogames","eSports/Videogames",
                          ifelse(wide_corr$Var2 == "Ping Pong Table Tennis","Ping Pong/Table Tennis",wide_corr$Var2))
-
 
 correlations_matrix <- ggplot(wide_corr, aes(x=Var1, y=Var2, fill=value)) + 
   geom_tile(aes(fill = value),colour = "white") +
@@ -426,9 +431,12 @@ demographic_plots <- function(df,demo,label) {
 
     ## reorder columns
     
+    demos_w$sport <- trimws(gsub(x = demos_w$sport,pattern = "\\.",replacement=" "))
+    demos_w$sport <- gsub(x = demos_w$sport,pattern = "  ",replacement=" ")
+    
     demos_w$value_recode <- factor(demos_w$value_recode,
                                    levels = c("Sport!","Sport - Feel Strongly","Not a Sport - Feel Strongly"))
-    
+  
     ## plotting!
     
     sports_heatmap_plot <- ggplot(demos_w,aes(x=variable,y=reorder(sport,sport_freq))) +
@@ -441,7 +449,7 @@ demographic_plots <- function(df,demo,label) {
       scale_fill_distiller(palette ="Spectral",direction = 1,guide = F) +
       geom_text(aes(x=variable,y=sport,label=percent(round(value,3)),color = (as.numeric(value) > 0.25) | demos_w$variable == 'zdiff')) +
       scale_color_manual(guide = FALSE, values = c("white", "black")) +
-      labs(title = "Overall Sports Rankings",
+      labs(title = paste0("Overall Sports Rankings by ",label),
            subtitle = paste("among a very non-random sample of 113 people with opinions about what is & isn't a sport")) +
       theme(legend.position = "bottom",
             axis.title = element_blank(),
@@ -575,6 +583,8 @@ for(f in sports) {
   ci$iv <- rownames(as.data.frame(summary.glm(model)$coefficients))
   
   model_df <- merge(ci,model_df,by="iv")
+  
+  model_df$sig <- ifelse((model_df$`97.5 %` < 0 & model_df$`2.5 %`< 0) | (model_df$`97.5 %` > 0 & model_df$`2.5 %`> 0),1,0)
 
   model_results <- rbind(model_results,model_df)
   
