@@ -457,7 +457,7 @@ demographic_plots <- function(df,demo,label) {
             strip.text = element_text(size=12),
             legend.key.width = unit(1, "cm")) +
       scale_y_discrete(expand = c(0, 0)) +
-      scale_x_discrete(expand = c(0, 0),labels = function(grouping) str_wrap(grouping, width = 15))
+      scale_x_discrete(expand = c(0, 0),labels = function(grouping) str_wrap(grouping, width = 10))
     
     ggsave(plot = sports_heatmap_plot, paste0("images/4.0 Sport Ratings by ",label,".png"), w = 10.67, h = 8,type = "cairo-png")
   
@@ -646,7 +646,6 @@ bigram_plot <- ggplot(ngrams,aes(x=reorder(bigram,n),y=n,fill="#900C3F")) +
   theme(axis.text = element_text(size=8))
 
 ggsave(plot = bigram_plot, "images/N-Grams.png", w = 8, h = 4,type = "cairo-png")
-
 
 bigrams_fandom <- survey_data %>%
   group_by(sports_fans) %>%
