@@ -67,6 +67,17 @@ mydf.final <- mydf %>%
   group_by(Season,tier) %>%
   arrange(-Season,tier,-Cumpts) %>% 
   mutate(league_position = row_number())
+
+
+leagues <- mydf.final %>%
+  group_by(Season,tier) %>%
+  mutate(total_teams_in_league = n()) %>%
+  select(Season,tier,total_teams_in_league) %>%
+  distinct() %>%
+  group_by(Season) %>%
+  mutate(adjusted_league_bottom = cumsum(total_teams_in_league))
+
+mydf.final <- merge(mydf.final,leagues,by = c("Season","tier"))
   
 
 ###################################################
