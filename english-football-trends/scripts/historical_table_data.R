@@ -1,6 +1,5 @@
 library(devtools)
 library(tidyverse)
-install_github('jalapic/engsoccerdata')
 library(engsoccerdata)
 
 ###################################################
@@ -62,9 +61,13 @@ mydf <- dfboth %>%
 
 mydf.final <- mydf %>% 
   filter(gameno == max(gameno)) %>%
-  group_by(Season,tier) %>%
+  group_by(Season) %>%
   arrange(-Season,tier,-Cumpts) %>%
-  mutate(position = row_number())
+  mutate(england_position = row_number()) %>%
+  group_by(Season,tier) %>%
+  arrange(-Season,tier,-Cumpts) %>% 
+  mutate(league_position = row_number())
+  
 
 ###################################################
 ##
