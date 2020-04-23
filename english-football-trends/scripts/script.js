@@ -47,7 +47,6 @@ function plotResults(team,input_season,input_fill){
 
     d3.csv("https://raw.githubusercontent.com/GWarrenn/this-and-that/drafting/english-football-trends/data/historical_table_data.csv", function(data){
 
-        console.log(input_season)
         // set the ranges
         chart = d3.select('#chart')
             .attr('width', width)
@@ -178,7 +177,6 @@ function plotResults(team,input_season,input_fill){
                 .attr("height", height - margin.top - margin.bottom)
                 .style("fill", input_fill)
                 .style("opacity",.2);   
-   
         } 
     })
 }
@@ -198,7 +196,66 @@ d3.csv("https://raw.githubusercontent.com/GWarrenn/this-and-that/drafting/englis
         d.Season = +d.Season;
     });      
 
+    ////////////////////////////
+    //
+    //best decade
+    //
+    ////////////////////////////
+
+    d3.select("#best-decade-table tbody").remove();
+    d3.select("#best-decade-table thead").remove();
+
+    var table = d3.select('#best-decade-table')
+        .append('table')
+
+    var thead = table.append('thead')
+    var	tbody = table.append('tbody');
+
+    best_data = _.orderBy(data, ({ moving_change }) => moving_change || '', ['desc']);
+    best_data = best_data.slice(1,40)
+
+    display_cols = ['Season','Team','Average Positions Gained per Season']
+    columns = ['Season','team','moving_change']
+
+    //// append the header row
+    thead.append('tr')
+      .selectAll('th')
+      .data(display_cols).enter()
+      .append('th')
+        .text(function (column) { return column; });
+
+    // create a row for each object in the data
+    var new_rows = tbody.selectAll('tr')
+      .data(best_data)
+      .enter()
+      .append('tr')
+      .classed("highlight", false)
+      .on("click", function(d) { 
+          plotResults(d.team,d.Season,"green"); 
+          new_rows.classed("highlight", false);
+          d3.select(this).classed("highlight", true);})
+      //.on("click", function(d) { updateFilter(d.team); })
+
+      new_rows.exit().remove();
+
+    cells = new_rows.selectAll('td')
+    .data(function (row) {
+        return columns.map(function (column) {
+            return {column: column, value: row[column]};
+        });
+    })
+    .enter()
+    .append('td')
+    //.style("background-color", function(d){ if(d.column == "outcome") return color(d.value);})
+    .text(function (d) { return d.value; });
+
+    cells.exit().remove();     
+
+    ////////////////////////////
+    //
     //roughest decade
+    //
+    ////////////////////////////
 
     d3.select("#roughest-decade-table tbody").remove();
     d3.select("#roughest-decade-table thead").remove();
@@ -227,70 +284,27 @@ d3.csv("https://raw.githubusercontent.com/GWarrenn/this-and-that/drafting/englis
       .data(roughest_data)
       .enter()
       .append('tr')
-      .on("click", function(d) { plotResults(d.team,+d.Season,"red"); }) 
+      .on("click", function(d) { 
+        plotResults(d.team,+d.Season,"red");
+        rows.classed("highlight", false);
+        d3.select(this).classed("highlight", true); })
       //.on("click", function(d) { updateFilter(d.team); })
 
     rows.exit().remove();
 
     cells = rows.selectAll('td')
-    .data(function (row) {
-        return columns.map(function (column) {
-            return {column: column, value: row[column]};
-        });
-    })
-    .enter()
-    .append('td')
-    //.style("background-color", function(d){ if(d.column == "outcome") return color(d.value);})
-    .text(function (d) { return d.value; });
+        .data(function (row) {
+            return columns.map(function (column) {
+                return {column: column, value: row[column]};
+            });
+        })
+        .enter()
+        .append('td')
+        //.style("background-color", function(d){ if(d.column == "outcome") return color(d.value);})
+        .text(function (d) { return d.value; });
 
     cells.exit().remove();    
 
-    //best decade
-
-    d3.select("#best-decade-table tbody").remove();
-    d3.select("#best-decade-table thead").remove();
-
-    var table = d3.select('#best-decade-table')
-        .append('table')
-
-    var thead = table.append('thead')
-    var	tbody = table.append('tbody');
-
-    best_data = _.orderBy(data, ({ moving_change }) => moving_change || '', ['desc']);
-    best_data = best_data.slice(1,40)
-
-    display_cols = ['Season','Team','Average Positions Gained per Season']
-    columns = ['Season','team','moving_change']
-
-    //// append the header row
-    thead.append('tr')
-      .selectAll('th')
-      .data(display_cols).enter()
-      .append('th')
-        .text(function (column) { return column; });
-
-    // create a row for each object in the data
-    var rows = tbody.selectAll('tr')
-      .data(best_data)
-      .enter()
-      .append('tr')
-      .on("click", function(d) { plotResults(d.team,d.Season,"green"); })
-      //.on("click", function(d) { updateFilter(d.team); })
-
-    rows.exit().remove();
-
-    cells = rows.selectAll('td')
-    .data(function (row) {
-        return columns.map(function (column) {
-            return {column: column, value: row[column]};
-        });
-    })
-    .enter()
-    .append('td')
-    //.style("background-color", function(d){ if(d.column == "outcome") return color(d.value);})
-    .text(function (d) { return d.value; });
-
-    cells.exit().remove();     
 
 
 })
