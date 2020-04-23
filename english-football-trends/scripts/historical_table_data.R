@@ -1,6 +1,7 @@
 library(devtools)
 library(tidyverse)
 library(engsoccerdata)
+library(zoo)
 
 ###################################################
 ##
@@ -77,6 +78,29 @@ leagues <- mydf.final %>%
   mutate(adjusted_league_bottom = cumsum(total_teams_in_league))
 
 mydf.final <- merge(mydf.final,leagues,by = c("Season","tier"))
+
+###################################################
+##
+## Find which club had the worst/best decade performance
+##
+###################################################
+
+mydf.final <- mydf.final %>% 
+  group_by(team) %>% 
+  arrange(team,Season) %>%
+  mutate(next_year = lead(england_position),
+         number_of_seasons = max(row_number()))
+
+mydf.final$change <- mydf.final$england_position - mydf.final$next_year
+
+roughest_decade <- mydf.final %>%
+  group_by(team) %>%
+  arrange(team,-Season) %>%
+  filter(number_of_seasons >= 10) %>%
+  mutate(moving_change = rollapply(change,10,mean,align='right',fill=change)) %>%
+  select(Season,team,moving_change)
+
+mydf.final <- merge(mydf.final,roughest_decade,by=c("Season","team"),all.x=T)
   
 world_wars <- data.frame("Season" = c(seq(1915, 1918),seq(1939,1945)))
 
@@ -87,12 +111,15 @@ all_seasons <- bind_rows(all_seasons, world_wars)
 
 mydf.final <- merge(mydf.final,all_seasons,by=c("Season","team"),all=T)
 
-
 ###################################################
 ##
-## Export Data
+## Export Data for D3
 ##
 ###################################################
 
-write.csv(file = "historical_table_data.csv",
+write.csv(file = "data/historical_table_data.csv",
           x = mydf.final,row.names = F)  
+
+
+
+
