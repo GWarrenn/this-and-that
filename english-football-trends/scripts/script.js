@@ -217,6 +217,10 @@ d3.csv("https://raw.githubusercontent.com/GWarrenn/this-and-that/drafting/englis
     display_cols = ['Season','Team','Average Positions Gained per Season']
     columns = ['Season','team','moving_change']
 
+    best_color = d3.scaleLinear()
+        .domain([8,5.5])
+        .range(["#71e554","#ffffff"]);  
+				
     //// append the header row
     thead.append('tr')
       .selectAll('th')
@@ -246,7 +250,7 @@ d3.csv("https://raw.githubusercontent.com/GWarrenn/this-and-that/drafting/englis
     })
     .enter()
     .append('td')
-    //.style("background-color", function(d){ if(d.column == "outcome") return color(d.value);})
+    .style("background-color", function(d){ if(d.column == "moving_change") return best_color(d.value);})
     .text(function (d) { return d.value; });
 
     cells.exit().remove();     
@@ -271,6 +275,10 @@ d3.csv("https://raw.githubusercontent.com/GWarrenn/this-and-that/drafting/englis
 
     display_cols = ['Season','Team','Average Positions Lost per Season']
     columns = ['Season','team','moving_change']
+
+    roughest_color = d3.scaleLinear()
+        .domain([-5,-7.5])
+        .range(["#ffffff","#ff4500"]);
 
     //// append the header row
     thead.append('tr')
@@ -300,7 +308,7 @@ d3.csv("https://raw.githubusercontent.com/GWarrenn/this-and-that/drafting/englis
         })
         .enter()
         .append('td')
-        //.style("background-color", function(d){ if(d.column == "outcome") return color(d.value);})
+        .style("background-color", function(d){ if(d.column == "moving_change") return roughest_color(+d.value);})
         .text(function (d) { return d.value; });
 
     cells.exit().remove();    
