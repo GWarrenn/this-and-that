@@ -68,7 +68,6 @@ mydf.final <- mydf %>%
   arrange(-Season,tier,-Cumpts) %>% 
   mutate(league_position = row_number())
 
-
 leagues <- mydf.final %>%
   group_by(Season,tier) %>%
   mutate(total_teams_in_league = n()) %>%
@@ -79,6 +78,15 @@ leagues <- mydf.final %>%
 
 mydf.final <- merge(mydf.final,leagues,by = c("Season","tier"))
   
+world_wars <- data.frame("Season" = c(seq(1915, 1918),seq(1939,1945)))
+
+all_seasons <- mydf.final %>%
+  expand(Season,team)
+
+all_seasons <- bind_rows(all_seasons, world_wars)
+
+mydf.final <- merge(mydf.final,all_seasons,by=c("Season","team"),all=T)
+
 
 ###################################################
 ##
