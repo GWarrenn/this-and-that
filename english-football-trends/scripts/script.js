@@ -42,6 +42,9 @@ function plotResults(team){
         
         chart.selectAll("*").remove()   
 
+        var parseTime = d3.timeParse("%Y")
+        bisectDate = d3.bisector(function(d) { return d.Season; }).left;
+
         var y = d3.scaleLinear()
             .range([margin.top, height - margin.bottom])
             .domain([1, 92]);
@@ -56,42 +59,32 @@ function plotResults(team){
 
         var xAxis = d3.axisTop()
             .ticks(10)
+            .tickFormat(function(d) { return d })
             .scale(x);
 
         // show weeks
         chart.append('g')
             .attr('class', 'axis x-axis')
-            .attr('transform', 'translate(0,0)')
+            .attr('transform', 'translate(0,' + ((margin.top/2) + 8) + ')')
             .call(xAxis)
             .selectAll('text')
-            .attr('dy', 2)
-
-        // show position
-        chart.append('g')
-            .attr('class', 'axis y-axis')
-            .attr('transform', 'translate(0, 0)')
-            .call(yAxis)     
-
-        chart.append('text')
-            //.attr("x", 15)
-            .attr("y", 15)
-            .attr("transform", "rotate(-90)")
-            .attr("fill", "#000")
-            .text("Standing");    
-            
-        valueline = d3.line()
-            .x(function(d) { return x(d.Season); })
-            .y(function(d) { return y(d.england_position); });	
-            
-        league_bottom_line =  d3.line()
-            .x(function(d) { return x(d.Season); })
-            .y(function(d) { return y(d.adjusted_league_bottom); });	   
+            .attr('dy', 0) 
 
         debug.forEach(function(d) {
             d.adjusted_league_bottom = +d.adjusted_league_bottom;
             d.england_position = +d.england_position;
             d.Season = +d.Season;
-        });
+        });            
+
+        valueline = d3.line()
+            .x(function(d) { return x(d.Season); })
+            .y(function(d) { return y(d.england_position); })
+            .defined(function(d) { return d.england_position; })
+            
+        league_bottom_line =  d3.line()
+            .x(function(d) { return x(d.Season); })
+            .y(function(d) { return y(d.adjusted_league_bottom); }) 
+            .defined(function(d) { return d.adjusted_league_bottom; })  
 
         nest = d3.nest()
             .key(function(d){
@@ -144,6 +137,6 @@ function plotResults(team){
                 return league_bottom_line(d.values)
             })
             .attr("stroke", "black")
-            .attr("fill", "none");                 
+            .attr("fill", "none");  
     })
 }
