@@ -32,8 +32,120 @@ function updateFilter(input_team){
             team_filter = d3.select(this)
             selected_team = team_filter["_groups"][0][0].value
             plotResults(selected_team)
+            clubDescription(selected_team)
         })
         plotResults(selected_team)
+        clubDescription(selected_team)
+    })
+}
+
+//////////////////////////////////////////
+//
+// Club Description
+//
+//////////////////////////////////////////
+
+function clubDescription(team){
+    d3.csv("https://raw.githubusercontent.com/GWarrenn/this-and-that/drafting/english-football-trends/data/historical_table_data.csv", function(data){
+
+        best_worst_text = ''
+        no_data_text = ''
+
+        data.forEach(function(d) {
+            d.adjusted_league_bottom = +d.adjusted_league_bottom;
+            d.england_position = +d.england_position;
+            d.league_position = +d.league_position;
+            d.moving_change = +d.moving_change;
+            d.Season = +d.Season;
+        });            
+
+        club = data.filter(function(d) { return d.team == team })
+        club_best = _.orderBy(club, ({ moving_change }) => moving_change || '', ['desc']);
+        club_best = club_best.slice(0,1)
+
+        decade_end = club_best[0].Season + 10
+        best_decade = club_best[0].Season + "-" + decade_end
+        best_decade_change = club_best[0].moving_change 
+
+        club_roughest = _.orderBy(club, ['moving_change'], ['asc']);
+        club_roughest = club_roughest.slice(0,1)
+ 
+        decade_end = club_roughest[0].Season + 10
+        roughest_decade = club_roughest[0].Season + "-" + decade_end
+        roughest_decade_change = Math.abs(club_roughest[0].moving_change)
+
+        if(!isNaN(roughest_decade_change) & !isNaN(best_decade_change)){
+            best_worst_text = team + " had the best decade of sustained growth during <b>" + best_decade + "</b>, where they gained an average of <b>" + best_decade_change + 
+            "</b> positions per season, on average. The roughest decade came in <b>" + roughest_decade + "</b>, where they dropped an average of <b>" + roughest_decade_change + 
+            "</b> positions per season."
+        }
+        else{
+            no_data_text = "<br><i>" + team + " does not have enough historical data to produce best/roughest decades.</i>"
+        }
+
+        highest_position = _.orderBy(club, ['england_position','Season'], ['asc','desc']);
+        highest_position = highest_position.slice(0,1)
+
+        highest_tier = highest_position[0].tier
+        highest_league_season = highest_position[0].Season
+
+        if(highest_tier == 1){
+            if(highest_league_season > 1992) {
+                highest_tier = "the Premier League"
+            }
+            else{
+                highest_tier = "the Football League First Division"
+            }    
+        } 
+        else if(highest_tier == 2){
+            if(highest_league_season >= 2004) {
+                highest_tier = "the Championship"
+            }
+            else if(highest_league_season > 1992 & highest_league_season < 2004){
+                highest_tier = "the Football League First Division"
+            }    
+            else{
+                highest_tier = "Football League Second Division"
+            }
+        } 
+        else if(highest_tier == 3){
+            if(highest_league_season >= 2004) {
+                highest_tier = "League One"
+            }
+            else if(highest_league_season > 1992 & highest_league_season <= 2004){
+                highest_tier = "the Football League Second Division"
+            }    
+            else{
+                highest_tier = "Football League Third Division"
+            }
+        } 
+        else if(highest_tier == 4){
+            if(highest_league_season >= 2004) {
+                highest_tier = "League Two"
+            }
+            else if(highest_league_season > 1992 & highest_league_season <= 2004){
+                highest_tier = "the Football League Third Division"
+            }    
+            else{
+                highest_tier = "Football League Fourth Division"
+            }
+        }                       
+        highest_league_position = highest_position[0].league_position
+
+        const nth = function(d) {
+            if (d > 3 && d < 21) return 'th';
+            switch (d % 10) {
+              case 1:  return "st";
+              case 2:  return "nd";
+              case 3:  return "rd";
+              default: return "th";
+            }
+          }
+
+        document.getElementById("club_description").innerHTML = best_worst_text + "The single best, most recent season (based on final table position alone) for " + 
+            team + " was the <b>" + highest_league_season + "</b> season where they finished in <b>" + highest_league_position.toString() +
+            nth(highest_league_position).toString() + "</b> place in <b>" + highest_tier + "</b>. " + no_data_text + "<br><br>"
+
     })
 }
 
@@ -212,7 +324,7 @@ d3.csv("https://raw.githubusercontent.com/GWarrenn/this-and-that/drafting/englis
     var	tbody = table.append('tbody');
 
     best_data = _.orderBy(data, ({ moving_change }) => moving_change || '', ['desc']);
-    best_data = best_data.slice(1,40)
+    best_data = best_data.slice(0,40)
 
     display_cols = ['Season','Team','Average Positions Gained per Season']
     columns = ['Season','team','moving_change']
@@ -235,7 +347,10 @@ d3.csv("https://raw.githubusercontent.com/GWarrenn/this-and-that/drafting/englis
       .append('tr')
       .classed("highlight", false)
       .on("click", function(d) { 
+          element = document.getElementById('team');
+          element.value = d.team;
           plotResults(d.team,d.Season,"green"); 
+          clubDescription(d.team);
           new_rows.classed("highlight", false);
           d3.select(this).classed("highlight", true);})
       //.on("click", function(d) { updateFilter(d.team); })
@@ -271,7 +386,7 @@ d3.csv("https://raw.githubusercontent.com/GWarrenn/this-and-that/drafting/englis
     var	tbody = table.append('tbody');
 
     roughest_data = _.orderBy(data, ['moving_change'], ['asc']);
-    roughest_data = roughest_data.slice(1,40)
+    roughest_data = roughest_data.slice(0,40)
 
     display_cols = ['Season','Team','Average Positions Lost per Season']
     columns = ['Season','team','moving_change']
@@ -293,7 +408,10 @@ d3.csv("https://raw.githubusercontent.com/GWarrenn/this-and-that/drafting/englis
       .enter()
       .append('tr')
       .on("click", function(d) { 
+        element = document.getElementById('team');
+        element.value = d.team;
         plotResults(d.team,+d.Season,"red");
+        clubDescription(d.team)
         rows.classed("highlight", false);
         d3.select(this).classed("highlight", true); })
       //.on("click", function(d) { updateFilter(d.team); })

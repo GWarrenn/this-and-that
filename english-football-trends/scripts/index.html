@@ -53,6 +53,8 @@ div.tables {
     font-weight: bold;
 }
 
+select { text-align-last:center; }
+
 </style>
 <meta charset="UTF-8">
 <script src="https://d3js.org/d3.v4.min.js"></script>
@@ -65,7 +67,8 @@ div.tables {
 </head>
 	<body>
         <h2  align="center"> 🏴󠁧󠁢󠁥󠁮󠁧󠁿⚽ Select Team: <select class = "title" align="center" id='team'></select>⚽🏴󠁧󠁢󠁥󠁮󠁧󠁿</h2>
-        <div align="center"><svg id="chart"></svg></div>
+		<div class='club' id='club_description' align="center" style="font-size:14px"></div>
+		<div align="center"><svg id="chart"></svg></div>
 		<script type="text/javascript" src="script.js"></script>
 	
 
