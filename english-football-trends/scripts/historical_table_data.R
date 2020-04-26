@@ -111,7 +111,6 @@ roughest_decade <- mydf.final %>%
 
 mydf.final <- merge(mydf.final,roughest_decade,by=c("Season","team"),all.x=T)
 
-
 mydf.final <- mydf.final %>%
   filter(!is.na(team))
 
