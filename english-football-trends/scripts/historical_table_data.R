@@ -79,6 +79,15 @@ leagues <- mydf.final %>%
 
 mydf.final <- merge(mydf.final,leagues,by = c("Season","tier"))
 
+world_wars <- data.frame("Season" = c(seq(1915, 1918),seq(1939,1945)))
+
+mydf.final <- bind_rows(mydf.final, world_wars)
+
+all_seasons <- mydf.final %>%
+  expand(Season,team)
+
+mydf.final <- merge(mydf.final,all_seasons,by=c("Season","team"),all=T)
+
 ###################################################
 ##
 ## Find which club had the worst/best decade performance
@@ -102,14 +111,6 @@ roughest_decade <- mydf.final %>%
 
 mydf.final <- merge(mydf.final,roughest_decade,by=c("Season","team"),all.x=T)
 
-world_wars <- data.frame("Season" = c(seq(1915, 1918),seq(1939,1945)))
-
-mydf.final <- bind_rows(mydf.final, world_wars)
-
-all_seasons <- mydf.final %>%
-  expand(Season,team)
-
-mydf.final <- merge(mydf.final,all_seasons,by=c("Season","team"),all=T)
 
 mydf.final <- mydf.final %>%
   filter(!is.na(team))
@@ -120,7 +121,7 @@ mydf.final <- mydf.final %>%
 ##
 ###################################################
 
-write.csv(file = "data\historical_table_data.csv",
+write.csv(file = "data/historical_table_data.csv",
           x = mydf.final,row.names = F)  
 
 
