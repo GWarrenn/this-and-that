@@ -40,7 +40,7 @@ h1{
 
 .title {
 	font-family: Franklin Gothic Book;
-	font-size: 24px;
+	font-size: 1em;
 	text-align: center;
 }
 
@@ -57,6 +57,7 @@ select { text-align-last:center; }
 
 </style>
 <meta charset="UTF-8">
+<meta name="author" content="August Warren">
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script src="https://d3js.org/d3-scale-chromatic.v0.3.min.js"></script>
 
@@ -66,15 +67,17 @@ select { text-align-last:center; }
 
 </head>
 	<body>
-        <h2  align="center"> 🏴󠁧󠁢󠁥󠁮󠁧󠁿⚽ Select Team: <select class = "title" align="center" id='team'></select>⚽🏴󠁧󠁢󠁥󠁮󠁧󠁿</h2>
+		<p style="font-size:10px" align="center">Author: <a href="https://gwarrenn.github.io/">August Warren</a> | Created: 4/26/2020</p>
+
+        <h4  align="center"> 🏴󠁧󠁢󠁥󠁮󠁧󠁿⚽ Select Team: <select class = "title" align="center" id='team'></select>⚽🏴󠁧󠁢󠁥󠁮󠁧󠁿</h4>
 		<div class='club' id='club_description' align="center" style="font-size:14px"></div>
 		<div align="center"><svg id="chart"></svg></div>
 		<script type="text/javascript" src="script.js"></script>
 	
 
 	<div class="row">
-		<p align="center" style="font-size:24px"><b>Best/Roughest Decades</b></p>
-			<p style="font-size:12px">The tables below show the highest of highs and the lowest of lows 
+		<h4 align="center">Best/Roughest Decades</h4>
+			<p style="font-size:14px">The tables below show the highest of highs and the lowest of lows 
 			across the four tiers of English football during any given 10 year period. 
 			The "Roughest Decades" represent the lowest points 
 			where clubs were losing the most amount of positions over any given 10 year period, while the 
@@ -83,7 +86,7 @@ select { text-align-last:center; }
 			in the middle of League Two or kept going up to the Championship only to be relegated the next year 
 			over and over. "Best" and "Roughest" are more defined as the periods with the greates swings in either direction.
 			<br></p>
-			<p align="center" style="font-size:12px">Click on a specific team to see that decade represented in the chart above.</p>
+			<p align="center" style="font-size:14px">Click on a specific team to see that decade represented in the chart above.</p>
 		<div class="column" align='center'>
 			<h4 align="center">Roughest Decades</h4>
 			<div class="tables" id="roughest-decade-table" align="center"></div>
@@ -93,6 +96,30 @@ select { text-align-last:center; }
 			<div class="tables" id="best-decade-table" align="center"></div>
 		</div>  
 	</div>
+	<br>
+	<h4 align="center">Methodology & Data</h4>
+	<p style="font-size:14px">The data used for this project was sourced from the <a href="https://github.com/jalapic/engsoccerdata">engsoccerdata</a> R package
+		developed and maintained by James Curley (jalapic) -- massive thanks to them for building such a useful
+		and rich source of football data, not only in England but across Europe. Each season datapoint represents the final, end of
+		season standing for each club; again, thanks to James for providing a <a href="https://rpubs.com/jalapic/seasons">great example</a> 
+		on how to derive these values from the game-level dat provided. I highly recommend using this package if you're looking to do any similar analysis.
+		<br>
+		<br>
+		This project was largely inspired by <a href="https://www.netflix.com/title/80207046">Sunderland 'Till I Die</a>, a Netflix show about Sunderland FC as 
+		it was relegated from the Premier League to the Championship and then once more to League One. I was curious to see how this fall 
+		stacked up against other clubs in the history of English football. Rather than measuring static decades, I decided to look at a 
+		moving ten year window for the greatest number of positions gained and dropped per season. The most recent decade (2009-2019) for Sunderland currently 
+		ranks in at the 174th roughest decade in English football history, which is also the roughest decade in the club's 100+ year history, as they dropped 4.1 positions
+		per season on average.  
+		<br>
+		<br>		
+		This additionally helped shine a light on some tumultuous decades for Welsh. Specifically the 1923-33 seasons for Cardiff City, dropping 8.5 positions per season and being 
+		relegated from the very top of the top tier to the very bottom of the lowest tier. On the other side, 2002-12 saw the greatest 
+		single decade of sustained growth for any club in the history of English football for Swansea City as they jumped from the bottom 
+		of League Two to the middle of the Premier League. Swansea also saw a rough decade in the 80's after a meterioic rise to the First Division in the 
+		decade prior, they dropped back down to the lowest tier a few seasons later. Here's a <a href="https://www.theguardian.com/football/that-1980s-sports-blog/2018/may/12/swansea-city-relegated-four-divisions">great read</a> on 
+		the factors that contributed to that era of Swansea's history        
+	</p>
 
 </body>
 

@@ -124,4 +124,7 @@ write.csv(file = "data/historical_table_data.csv",
           x = mydf.final,row.names = F)  
 
 
-
+temp <- mydf.final %>%
+  arrange(moving_change) %>%
+  mutate(rank = rank(moving_change)) %>%
+  filter(team == "Sunderland")
