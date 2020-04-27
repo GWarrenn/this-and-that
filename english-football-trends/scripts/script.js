@@ -7,7 +7,7 @@ updateFilter('AFC Bournemouth')
 
 function updateFilter(input_team){
 
-    d3.csv("https://raw.githubusercontent.com/GWarrenn/this-and-that/drafting/english-football-trends/data/historical_table_data.csv", function(data){
+    d3.csv("https://raw.githubusercontent.com/GWarrenn/this-and-that/master/english-football-trends/data/historical_table_data.csv", function(data){
         debug =  data
          
         var teamSelector = d3.select('#team')
@@ -46,7 +46,7 @@ function updateFilter(input_team){
 //////////////////////////////////////////
 
 function clubDescription(team){
-    d3.csv("https://raw.githubusercontent.com/GWarrenn/this-and-that/drafting/english-football-trends/data/historical_table_data.csv", function(data){
+    d3.csv("https://raw.githubusercontent.com/GWarrenn/this-and-that/master/english-football-trends/data/historical_table_data.csv", function(data){
 
         best_worst_text = ''
         no_data_text = ''
@@ -157,7 +157,7 @@ function clubDescription(team){
 
 function plotResults(team,input_season,input_fill){
 
-    d3.csv("https://raw.githubusercontent.com/GWarrenn/this-and-that/drafting/english-football-trends/data/historical_table_data.csv", function(data){
+    d3.csv("https://raw.githubusercontent.com/GWarrenn/this-and-that/master/english-football-trends/data/historical_table_data.csv", function(data){
 
         // set the ranges
         chart = d3.select('#chart')
@@ -299,7 +299,7 @@ function plotResults(team,input_season,input_fill){
 //
 //////////////////////////////////////////
 
-d3.csv("https://raw.githubusercontent.com/GWarrenn/this-and-that/drafting/english-football-trends/data/historical_table_data.csv", function(data){
+d3.csv("https://raw.githubusercontent.com/GWarrenn/this-and-that/master/english-football-trends/data/historical_table_data.csv", function(data){
 
     table_data = data
 
