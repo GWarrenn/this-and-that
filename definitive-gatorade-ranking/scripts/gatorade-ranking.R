@@ -15,9 +15,9 @@ library(ggnewscale)
 library(stringr)
 library(ggrepel)
 library(reshape2)
-
 library(factoextra)
 library(ggridges)
+library(htmlTable)
 
 #####################################################
 ##
@@ -123,9 +123,23 @@ clean_l$gpa <- ifelse(clean_l$value == "A-tier",4,
                                                   NA)))))
 
 stats <- clean_l %>%
+  filter(value != "Don't Know/Never Tried") %>%
   group_by(variable,value) %>%
   summarise(n=n()) %>%
   mutate(freq=n/sum(n))
+
+stats_never_tried <- clean_l %>%
+  group_by(variable,value) %>%
+  summarise(n=n()) %>%
+  mutate(freq=n/sum(n)) %>%
+  filter(value == "Don't Know/Never Tried") 
+  
+stats <- rbind(stats,stats_never_tried)
+
+stats_a_tier <- clean_l %>%
+  filter(!is.na(gpa)) %>%
+  group_by(variable) %>%
+  summarise(mean_gpa = mean(gpa))
 
 stats_a_tier <- stats %>%
   filter(value == "A-tier") %>%
@@ -136,21 +150,29 @@ stats <- merge(stats,stats_a_tier)
 
 stats$value <- factor(stats$value,levels = c("A-tier","B-tier","C-tier","D-tier","F-tier","Don't Know/Never Tried"))
 
+stats$facet <- ifelse(stats$value == "Don't Know/Never Tried","% Never Tried","Tier Ratings (Excluding Never Tried)")
+stats$facet <- factor(stats$facet,levels = c("Tier Ratings (Excluding Never Tried)","% Never Tried"))
+
 count <- nrow(survey_data)
 
-heatmap_plot <- ggplot(stats,aes(x=value,y=reorder(variable,a_freq))) +
-  geom_tile(aes(fill = freq),colour = "white") +
-  geom_text(aes(x=value,y=reorder(variable,a_freq),label=percent(round(freq,3)),color = as.numeric(freq) > 0.25)) +
-  scale_color_manual(guide = FALSE, values = c("white", "black")) +
+heatmap_plot <- ggplot(stats,aes(x=value,y=reorder(variable,mean_gpa))) +
+  geom_tile(data = filter(stats, value == "Don't Know/Never Tried"), 
+            aes(x=value,y=reorder(variable,mean_gpa),fill = freq)) +
   scale_fill_viridis(name="",labels = scales::percent) +
-  labs(title = "Overall Gatorade Rankings",
-       subtitle = paste("among a very non-random sample of",count,"people with opinions about what is & isn't a sport")) +
+  geom_tile(data=filter(stats,value != "Don't Know/Never Tried"),
+            aes(x=value,y=reorder(variable,mean_gpa),fill = freq),colour = "white") +
+  facet_grid(~facet,scales = "free_x",space = "free_x") +
+  geom_text(aes(x=value,y=reorder(variable,mean_gpa),label=percent(round(freq,3)),color = (as.numeric(freq) > 0.25))) +
+  scale_color_manual(guide = FALSE, values = c("white", "black")) +
+  labs(title = paste0("Overall Gatorade Rankings"),
+       subtitle = paste("among a very non-random sample of", count, "people with opinions about Gatorade")) +
   theme(legend.position = "bottom",
         axis.title = element_blank(),
         axis.text = element_text(size=12),
+        strip.text = element_text(size=12),
         legend.key.width = unit(1, "cm")) +
   scale_y_discrete(expand = c(0, 0)) +
-  scale_x_discrete(expand = c(0, 0),labels = function(grouping) str_wrap(grouping, width = 20))
+  scale_x_discrete(expand = c(0, 0),labels = function(grouping) str_wrap(grouping, width = 10))
 
 ggsave(plot=heatmap_plot,filename="1_overall_ratings.png",path = "figures/",
        w = 10.67, h = 8,type = "cairo-png")
@@ -176,19 +198,29 @@ flavor_gpa <- clean_l %>%
 
 name_recognition_gpa <- merge(name_recognition,flavor_gpa,by="variable")
 
-temp <- ggplot(name_recognition_gpa,aes(x=mean_gpa,y=pct_familiar)) +
+name_recognition_plot <- ggplot(name_recognition_gpa,aes(x=mean_gpa,y=pct_familiar)) +
+  geom_rect(aes(xmin=mean(name_recognition_gpa$mean_gpa), xmax=4, ymin=0,
+                            ymax=1),fill="light green",alpha =0.05) +
+  geom_rect(aes(xmin=0, xmax=mean(name_recognition_gpa$mean_gpa), ymin=0,
+                ymax=1),fill="light pink",alpha =0.05) +
+  geom_rect(aes(ymin=mean(name_recognition_gpa$pct_familiar), ymax=1, xmin=0,
+                xmax=4),fill="light green",alpha =0.05) +
+  geom_rect(aes(ymin=0, ymax=mean(name_recognition_gpa$pct_familiar), xmin=0,
+                xmax=4),fill="light pink",alpha =0.05) +  
   geom_point(size=2) +
-  geom_label_repel(aes(label=variable),
-                   box.padding = unit(0.35, "lines"),
+  geom_text_repel(aes(label=variable),
+                   box.padding = unit(0.3, "lines"),
                    point.padding = unit(0.3, "lines")) +
   geom_hline(yintercept = mean(name_recognition_gpa$pct_familiar)) +
   geom_vline(xintercept = mean(name_recognition_gpa$mean_gpa)) +
-  scale_x_continuous(limits = c(0,4)) +
-  scale_y_continuous(limits = c(0,1)) +
-  labs(x="Mean Flavor GPA",
-       y="Percent of Respondents Tried Flavor")
-
-ggsave(plot=temp,filename="temp.png",path = "figures/",
+  scale_x_continuous(limits = c(0,4),expand = c(0, 0)) +
+  scale_y_continuous(limits = c(0,1),labels = scales::percent,expand = c(0, 0)) +
+  labs(x="Mean Gatorade GPA",
+       y="Percent of Respondents Tried Flavor",
+       title="Gatorade Name Recognition vs. Gatorade Ratings",
+       subtitle = paste("among a very non-random sample of",count,"people with opinions about Gatorade"))
+  
+ggsave(plot=name_recognition_plot,filename="1_1_name_recognition_plot.png",path = "figures/",
        w = 10.67, h = 8,type = "cairo-png")
 
 #####################################################
@@ -217,7 +249,7 @@ correlations_matrix <- ggplot(wide_corr, aes(x=Var1, y=Var2, fill=value)) +
   scale_fill_gradientn(colours = c("red","white","#1a9641"), 
                        values = rescale(c(-.3,0,.6)),
                        guide = "colorbar", limits=c(-.3,.6)) +
-  labs(title = "Fruit Correlation Matrix",
+  labs(title = "Gatorade Correlation Matrix",
        subtitle = paste("among a very non-random sample of",count,"people with opinions about Gatorade"),
        fill = "R-Squared") +
   theme(legend.position = "bottom",
@@ -241,9 +273,12 @@ clean_demos <- survey_data %>%
          race_recode,
          income_recode,
          ideo_recode,
-         favorability_recode)
+         favorability_recode,
+         `When.referring.to.various.Gatorades..do.you.refer.to.the.flavor.or.the.color.most.often`) %>%
+  rename(flavor_or_color = "When.referring.to.various.Gatorades..do.you.refer.to.the.flavor.or.the.color.most.often")
 
-clean_l_demos <- melt(clean_demos,id.vars = c("age_recode","race_recode","gender_recode","income_recode","ideo_recode","favorability_recode"))
+clean_l_demos <- melt(clean_demos,id.vars = c("age_recode","race_recode","gender_recode","income_recode","ideo_recode",
+                                              "favorability_recode","flavor_or_color"))
 
 ## fixing color names
 
@@ -259,8 +294,8 @@ clean_l_demos$gpa <- ifelse(clean_l_demos$value == "A-tier",4,
                                                  ifelse(clean_l_demos$value == "F-tier",0,
                                                         NA)))))
 
-demos <- c("gender_recode","age_recode","income_recode","race_recode","ideo_recode","favorability_recode")
-demo_label <- c("Gender","Age","Income","Race/Ethnicity","Ideology","Gatorade Favorability")
+demos <- c("gender_recode","age_recode","income_recode","race_recode","ideo_recode","favorability_recode","flavor_or_color")
+demo_label <- c("Gender","Age","Income","Race/Ethnicity","Ideology","Gatorade Favorability","Flavor/Color Preference")
 
 num <- 1
 
@@ -310,7 +345,7 @@ for (d in demos) {
     scale_color_manual(guide = FALSE, values = c("white", "black")) +
     scale_fill_viridis(name="GPA") +
     labs(title = paste("Overall Flavor GPA by",demo_label[num]),
-         subtitle = paste("among a very non-random sample of",count,"people with opinions about fruit")) +
+         subtitle = paste("among a very non-random sample of",count,"people with opinions about Gatorade")) +
     theme(legend.position = "bottom",
           axis.title = element_blank(),
           axis.text = element_text(size=12),
@@ -337,6 +372,10 @@ distribution_gender <- clean_l_demos %>%
             median_gpa = median(gpa),
             std_dv = sd(gpa))
 
+women_sd <- filter(distribution_gender,gender_recode=="Female") %>% ungroup() %>% summarise(sd = sd(as.numeric(mean_gpa)))
+men_sd <- filter(distribution_gender,gender_recode=="Male") %>% ungroup() %>% summarise(sd = sd(as.numeric(mean_gpa)))
+nonbinary_sd <- filter(distribution_gender,gender_recode=="Other") %>% ungroup() %>% summarise(sd = sd(as.numeric(mean_gpa)))
+
 distribution_gender_plot <- ggplot(distribution_gender,aes(x=mean_gpa,y=gender_recode, fill=factor(..quantile..))) +
   stat_density_ridges(
     geom = "density_ridges_gradient", calc_ecdf = TRUE,
@@ -346,6 +385,7 @@ distribution_gender_plot <- ggplot(distribution_gender,aes(x=mean_gpa,y=gender_r
   labs(x = "Average Gatorade GPA",y = "",
        title="Average Gatorade GPA Distribution by Gender",
        subtitle = paste("among a very non-random sample of",count,"people with opinions about Gatorade"),
+       caption = paste("Standard deviations: Men =",round(men_sd,2)," | Women =",round(women_sd,2)," | Non-binary =",round(nonbinary_sd,2)),
        fill="Legend") +
   theme(legend.position="bottom") 
 
@@ -421,7 +461,7 @@ model_results$color <- gsub("\\.$",")",model_results$color,perl = T)
 model_results$color <- gsub("\\."," ",model_results$color)
 model_results$color <- gsub("\\( ","- ",model_results$color)
 
-regression_plot <- ggplot(model_results, aes(iv, Estimate,color=sig_lab))+
+regression_plot <- ggplot(model_results, aes(x=iv,y=Estimate,color=sig_lab))+
   facet_wrap(~color) +
   geom_point() +
   scale_color_manual(values=c("black","red")) +
@@ -429,7 +469,8 @@ regression_plot <- ggplot(model_results, aes(iv, Estimate,color=sig_lab))+
   geom_hline(yintercept = 0) +
   geom_pointrange(aes(ymin = `2.5 %`, ymax = `97.5 %`)) +
   labs(title = "Definitive Gatorade Ranking: Demographic Regression Coefficients",
-       x = "Regression Coefficient",
+       subtitle = paste("among a very non-random sample of",count,"people with opinions about Gatorade"),
+       y = "Estimated Likelihood of Favorable Opinions Toward Gatorade Flavor",
        color="Legend") +
   theme(axis.title.y = element_blank(),
         legend.position = "bottom")
@@ -504,6 +545,8 @@ all_demos$group_var_lab <- ifelse(all_demos$group_var == "age_recode","Age",
                                                        ifelse(all_demos$group_var == "income_recode","Income",
                                                               ifelse(all_demos$group_var == "race_recode","Race/Ethnicity",NA))))))
 
+all_demos <- all_demos %>% filter(merge_var != "Prefer not to disclose")
+
 flavor_color_plot <- ggplot(all_demos,aes(x=merge_var,y=freq,fill=value)) +
   geom_bar(stat="identity", position = position_dodge(),color="black") +
   facet_wrap(~group_var_lab,scales = "free") +
@@ -522,7 +565,11 @@ flavor_color_plot <- ggplot(all_demos,aes(x=merge_var,y=freq,fill=value)) +
 
 ggsave(plot = flavor_color_plot, paste0("figures\\6_Flavor or Color -- Demos.png"), w = 10.67, h = 8,type = "cairo-png")
 
-## regressions
+###########################################
+##
+## Flavor/Color regressions
+##
+###########################################
 
 clean$color_flavor_dv <- ifelse(clean$flavor_color == "Color",1,0)
 clean$male <- ifelse(clean$gender_recode == "Male",1,0)
@@ -562,7 +609,8 @@ regression_plot <- ggplot(model_df, aes(iv, Estimate,color=sig_lab))+
   geom_hline(yintercept = 0) +
   geom_pointrange(aes(ymin = `2.5 %`, ymax = `97.5 %`)) +
   labs(title = "Flavor or Color: Demographic Regression Coefficients",
-       subtitle="Estimated likelihood of referring to Gatorade by the color instead of the flavor",
+       subtitle = paste("among a very non-random sample of",count,"people with opinions about Gatorade"),
+       y="Estimated likelihood of referring to Gatorade by the color instead of the flavor",
        x = "Regression Coefficient",
        color="Legend") +
   theme(axis.title.y = element_blank(),
@@ -644,7 +692,8 @@ pca_plot <- fviz_pca_biplot(gatorade.pca, repel = TRUE,
                 col.var = "contrib", # Color by contributions to the PC
                 gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
                 ggtheme = theme_minimal(),
-                title = "Gatorade Flavor & Demographics PCA Biplot" 
+                title = "Gatorade Flavor & Demographics PCA Biplot",
+                 subtitle = paste("among a very non-random sample of",count,"people with opinions about Gatorade")
                   
 )
 
