@@ -56,16 +56,22 @@ function clubDescription(team){
             d.england_position = +d.england_position;
             d.league_position = +d.league_position;
             d.moving_change = +d.moving_change;
+            d.avg_position = +d.avg_position;
             d.Season = +d.Season;
         });            
 
         club = data.filter(function(d) { return d.team == team })
+
+        // Best Decade of Growth    
+
         club_best = _.orderBy(club, ({ moving_change }) => moving_change || '', ['desc']);
         club_best = club_best.slice(0,1)
 
         decade_end = club_best[0].Season + 10
         best_decade = club_best[0].Season + "-" + decade_end
         best_decade_change = club_best[0].moving_change 
+
+        // Worst Decade of Growth
 
         club_roughest = _.orderBy(club, ['moving_change'], ['asc']);
         club_roughest = club_roughest.slice(0,1)
@@ -74,10 +80,40 @@ function clubDescription(team){
         roughest_decade = club_roughest[0].Season + "-" + decade_end
         roughest_decade_change = Math.abs(club_roughest[0].moving_change)
 
+        // Best Decade of Average Position
+
+        club_peak_avg = _.orderBy(club, ['avg_position'], ['asc']);
+        club_peak_avg = club_peak_avg.slice(0,1)
+
+        decade_start = club_peak_avg[0].Season - 10
+        peak_decade =  decade_start + "-" + club_peak_avg[0].Season
+        peak_decade_avg = Math.round(club_peak_avg[0].avg_position) 
+
+        // Worst Decade of Average Position
+
+        club_gutter_avg = _.orderBy(club, ({ avg_position }) => avg_position || '', ['desc']); 
+        club_gutter_avg = club_gutter_avg.slice(0,1)
+
+        decade_start = club_gutter_avg[0].Season - 10
+        gutter_decade =  decade_start + "-" + club_gutter_avg[0].Season
+        gutter_decade_avg = Math.round(club_gutter_avg[0].avg_position)
+
+        const nth = function(d) {
+            if (d > 3 && d < 21) return 'th';
+            switch (d % 10) {
+              case 1:  return "st";
+              case 2:  return "nd";
+              case 3:  return "rd";
+              default: return "th";
+            }
+          }
+
         if(!isNaN(roughest_decade_change) & !isNaN(best_decade_change)){
             best_worst_text = team + " had the best decade of sustained growth during <b>" + best_decade + "</b>, where they gained an average of <b>" + best_decade_change + 
             "</b> positions per season, on average. The roughest decade came in <b>" + roughest_decade + "</b>, where they dropped an average of <b>" + roughest_decade_change + 
-            "</b> positions per season."
+            "</b> positions per season." + " The peak decade of average performance was in <b>" + peak_decade + "</b>, where they maintained an average season-end table position of <b>" +
+            peak_decade_avg + nth(peak_decade_avg).toString() + "</b> place across the decade. However, the worst decade of average performance can in <b>" + gutter_decade + "</b>, where they maintained an average season-end table position of <b>" + 
+            gutter_decade_avg + nth(gutter_decade_avg).toString() + "</b>. "
         }
         else{
             no_data_text = "<br><i>" + team + " does not have enough historical data to produce best/roughest decades.</i>"
@@ -131,16 +167,6 @@ function clubDescription(team){
             }
         }                       
         highest_league_position = highest_position[0].league_position
-
-        const nth = function(d) {
-            if (d > 3 && d < 21) return 'th';
-            switch (d % 10) {
-              case 1:  return "st";
-              case 2:  return "nd";
-              case 3:  return "rd";
-              default: return "th";
-            }
-          }
 
         document.getElementById("club_description").innerHTML = best_worst_text + "The single best, most recent season (based on final table position alone) for " + 
             team + " was the <b>" + highest_league_season + "</b> season where they finished in <b>" + highest_league_position.toString() +
