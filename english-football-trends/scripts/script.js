@@ -233,7 +233,7 @@ function plotResults(team,input_season,input_fill){
             
         league_bottom_line =  d3.line()
             .x(function(d) { return x(d.Season); })
-            .y(function(d) { return y(d.adjusted_league_bottom); }) 
+            .y(function(d) { return y(d.adjusted_league_bottom +.5); }) 
             .defined(function(d) { return d.adjusted_league_bottom; })  
 
         nest = d3.nest()
