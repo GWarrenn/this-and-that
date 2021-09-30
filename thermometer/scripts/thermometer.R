@@ -25,7 +25,7 @@ library(htmlTable)
 ##
 #####################################################
 
-setwd("./GitLab/this-and-that/thermometer/")
+setwd("this-and-that/thermometer/")
 
 sheets <- drive_find(type = "spreadsheet")
 
@@ -34,6 +34,12 @@ sheet_id <- sheets$id[1]
 drive_download(as_id(sheet_id), type = "csv",overwrite = T)
 
 survey_data <- read.csv("Some Like it way Too Cold (Responses).csv")
+
+###############################################
+##
+## Demographic recoding
+##
+###############################################
 
 survey_data$gender_recode <- ifelse(survey_data$With.which.gender.do.you.most.closely.identify == "Male","Male",
                                     ifelse(survey_data$With.which.gender.do.you.most.closely.identify == "Female","Female","Other"))
@@ -47,6 +53,8 @@ survey_data$age_recode <- ifelse(survey_data$What.is.your.age == "40-44" | surve
                                  ifelse(survey_data$What.is.your.age == "18-24" | survey_data$What.is.your.age == "25-29","18-29",
                                         ifelse(survey_data$What.is.your.age == "30-34"| survey_data$What.is.your.age == "35-39","30-39",
                                                as.character(survey_data$What.is.your.age))))
+
+survey_data$legend <- ifelse(survey_data$Email.Address == "augustjwarren@gmail.com","me","everyone else")
 
 ###############################################
 ##
@@ -74,9 +82,9 @@ distribution_gender <- have_therms %>%
             median_temp = median(What.temperature.is.your.thermostat.currently.set.to...in.Fahrenheit.),
             std_dv = sd(What.temperature.is.your.thermostat.currently.set.to...in.Fahrenheit.))
 
-women_sd <- filter(distribution_gender,gender_recode=="Female") %>% ungroup() %>% summarise(sd = sd(as.numeric(mean_gpa)))
-men_sd <- filter(distribution_gender,gender_recode=="Male") %>% ungroup() %>% summarise(sd = sd(as.numeric(mean_gpa)))
-nonbinary_sd <- filter(distribution_gender,gender_recode=="Other") %>% ungroup() %>% summarise(sd = sd(as.numeric(mean_gpa)))
+women_sd <- filter(distribution_gender,gender_recode=="Female") %>% ungroup() %>% summarise(sd = sd(as.numeric(mean_temp)))
+men_sd <- filter(distribution_gender,gender_recode=="Male") %>% ungroup() %>% summarise(sd = sd(as.numeric(mean_temp)))
+nonbinary_sd <- filter(distribution_gender,gender_recode=="Other") %>% ungroup() %>% summarise(sd = sd(as.numeric(mean_temp)))
 
 ggplot(have_therms,aes(x=What.temperature.is.your.thermostat.currently.set.to...in.Fahrenheit.,y=gender_recode, fill=factor(..quantile..))) +
   stat_density_ridges(
@@ -84,12 +92,29 @@ ggplot(have_therms,aes(x=What.temperature.is.your.thermostat.currently.set.to...
     quantiles = 4, quantile_lines = TRUE
   ) +
   scale_fill_viridis(discrete = TRUE, name = "Quartiles",alpha=.8,option = "C") +
-  labs(x = "Average Gatorade GPA",y = "",
-       title="Average Gatorade GPA Distribution by Gender",
-       subtitle = paste("among a very non-random sample of",count,"people with opinions about Gatorade"),
+  labs(x = "Thermostat Temp",y = "",
+       title="Current Thermostat Setting by Gender",
+       subtitle = paste("among a very non-random sample of people with opinions about their indoor climate"),
        caption = paste("Standard deviations: Men =",round(men_sd,2)," | Women =",round(women_sd,2)," | Non-binary =",round(nonbinary_sd,2)),
        fill="Legend") +
   theme(legend.position="bottom") 
+
+###############################################
+##
+## Current temp by outside temp
+##
+###############################################
+
+indoor_v_outdoor <- have_therms %>%
+  mutate(diff = `What.is.the.current.temperature.outside..in.Fahrenheit...You.can.use.a.weather.app.` - What.temperature.is.your.thermostat.currently.set.to...in.Fahrenheit.)
+
+ggplot(indoor_v_outdoor,aes(x=`What.is.the.current.temperature.outside..in.Fahrenheit...You.can.use.a.weather.app.`, 
+                            y=What.temperature.is.your.thermostat.currently.set.to...in.Fahrenheit.,
+                            color=legend))  +
+  geom_jitter() +
+  geom_abline() +
+  scale_x_continuous(limits = c(65,100)) + 
+  scale_y_continuous(limits = c(65,100))
 
 ###############################################
 ##
@@ -109,7 +134,7 @@ ideal_night <- filter(ideal,key_recode=="Night Temp") %>% ungroup() %>% summaris
 ggplot(ideal,aes(x=value,fill=key_recode)) +
   geom_density(alpha=.4) +
   geom_vline(xintercept = mean(ideal_day$mean)) + 
-  geom_vline(xintercept = mean(ideal_night$mean)) 
+  geom_vline(xintercept = mean(ideal_night$mean),linetype="dashed") 
 
 ###############################################
 ##
@@ -173,6 +198,28 @@ ggplot(temp, aes(x = What.is.your.ideal.room.temperature.during.the.day..in.Fahr
   coord_fixed() +
   scale_fill_viridis(option = "D") +
   geom_abline(color="white")
+
+#####################################################
+##
+## correlations
+##
+#####################################################
+
+demos <- c("age_recode","gender_recode")
+
+all_demos <- data.frame()
+
+for(f in demos) {
+  
+  temp <- clean_demos %>%
+    filter(clean_demos[,f] != "") %>%
+    group_by(clean_demos[,f]) %>%
+    summarise(avg_temp = mean(current_temp))
+  
+  all_demos <- rbind(temp,all_demos)
+}  
+
+wide_flavors <- dcast(all_demos, `clean_demos[, f]`  ~ avg_temp, value.var = "gpa") 
 
 
 #####################################################

@@ -114,6 +114,15 @@ mydf.final <- merge(mydf.final,roughest_decade,by=c("Season","team"),all.x=T)
 mydf.final <- mydf.final %>%
   filter(!is.na(team))
 
+best_decade <-  mydf.final %>%
+  group_by(team) %>%
+  arrange(team,-Season) %>%
+  filter(number_of_seasons >= 10) %>%
+  mutate(avg_position = rollapply(england_position,10,mean,align='left',fill=NA)) %>%
+  select(Season,team,avg_position)
+
+mydf.final <- merge(mydf.final,best_decade,by=c("Season","team"),all.x=T)
+
 ###################################################
 ##
 ## Export Data for D3
@@ -122,7 +131,6 @@ mydf.final <- mydf.final %>%
 
 write.csv(file = "data/historical_table_data.csv",
           x = mydf.final,row.names = F)  
-
 
 temp <- mydf.final %>%
   arrange(moving_change) %>%
