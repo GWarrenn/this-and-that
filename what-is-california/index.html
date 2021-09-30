@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Draw a polygon and calculate its area</title>
+        <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+        <link href="https://api.mapbox.com/mapbox-gl-js/v2.2.0/mapbox-gl.css" rel="stylesheet">
+        <script src="https://api.mapbox.com/mapbox-gl-js/v2.2.0/mapbox-gl.js"></script>
+        <style>
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        #export, #updateDataset {
+            position: absolute;
+            top:140px;
+            left:10px;
+            z-index:100;
+            background-color:white;
+            color:black;
+            padding:6px;
+            border-radius:4px;
+            font-family: 'Helvetica Neue';
+            cursor: pointer;
+            font-size:12px;
+            text-decoration:none;
+            background-repeat: no-repeat;
+            background-position: -4245px -3px;
+            height: 20px;
+            width: 100px;
+            color: 'black';
+            content: 'Submit Definition';
+        }
+        #export:hover, #updateDataset:hover {
+            background-color: #ddd;
+        }
+        #updateDataset {
+            background-position: -4324px -3px;
+            top: 180px;
+        }
+        body, .mapboxgl-popup {
+            font-family: 'IBM Plex Mono', 'Monaco', 'Courier', monospace !important;
+        }
+        .map-info {
+        position: absolute;
+        width: 480px;
+        top: 12px;
+        left: 12px;
+        z-index: 9;
+      }
+      .map-info-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+      .map-title {
+        font-size: 16px;
+        text-align: center;
+        margin: 0;
+        color: white
+      }
+        </style>
+    </head>
+<body>
+
+<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.2.2/mapbox-gl-draw.js"></script>
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.2.2/mapbox-gl-draw.css" type="text/css">
+<div class="map-info">
+    <div class="map-info-header">
+      <div class="map-title">
+        What is Northern/Southern California?
+      </div>
+    </div>
+</div>
+
+<div id="map"></div>
+<a href="#" id='updateDataset'>Submit Definition</a>
+
+
+
+<script>
+mapboxgl.accessToken = 'pk.eyJ1IjoiZ3dhcnJlbm4iLCJhIjoiY2p4d294Z2xhMGh4czNub2N1c202dnNvdCJ9.iRGx2PURnTzXBHgRIH2zKg';
+var map = new mapboxgl.Map({
+    container: 'map', // container id
+    style: 'mapbox://styles/mapbox/dark-v8', //stylesheet location
+    center: [-120.72684611398834,36.94886821245771], // starting position
+    zoom: 5.9 // starting zoom
+});
+
+var draw = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: {
+            polygon: false,
+            trash: true
+        },
+        defaultMode: 'draw_line_string'
+    });
+
+map.on('load', function(){
+
+    map.addControl(draw);
+
+    document.getElementById('updateDataset').onclick = function(e) {
+        e.preventDefault();
+        uploadFeatures();
+    }
+
+});
+
+function uploadFeatures(){
+
+    var drawnData = draw.getAll();
+
+    console.log(drawnData)
+
+    for(i = 0; i < drawnData.features.length; i++){
+
+        var xmlhttp = new XMLHttpRequest();   // new HttpRequest instance 
+        //xmlhttp.open("POST", 'https://evening-sierra-80988.herokuapp.com/dataset');
+        //xmlhttp.setRequestHeader("Content-Type", "application/json");
+        //xmlhttp.send(JSON.stringify({"feature":drawnData.features[i], "datasetId": "cirqs92m00hu8fgm8piqgihok"}));
+
+        xmlhttp.onreadystatechange = function() {
+        if (xmlhttp.readyState == 4 && xmlhttp.status == 200 && i == drawnData.features.length) {
+            alert('upload successful!');
+
+            getData(datasetId);
+        } else if (xmlhttp.readyState == 4 && xmlhttp.status !== 200){
+            alert('looks like something went wrong');
+        }
+    };
+    }
+}
+
+</script>
+
+</body>
+</html>
