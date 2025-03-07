@@ -1,5 +1,6 @@
 library(devtools)
-library(tidyverse)
+library(dplyr)
+# install_github("jalapic/engsoccerdata")
 library(engsoccerdata)
 library(zoo)
 
@@ -9,7 +10,7 @@ library(zoo)
 ##
 ###################################################
 
-df <- tbl_df(england)
+df <- england
 df$Date <- as.Date(df$Date, format="%Y-%m-%d")   
 
 ###################################################
@@ -26,7 +27,6 @@ dfhome <- df %>% mutate(team = home,
                         result=ifelse(GD>0, "W", ifelse(GD<0, "L", "D")),
                         venue="home") 
 
-
 dfaway <- df %>% mutate(team = visitor,
                         opp = home, 
                         GF=as.numeric(as.character(vgoal)),
@@ -34,7 +34,6 @@ dfaway <- df %>% mutate(team = visitor,
                         GD = GF-GA,
                         result=ifelse(GD>0, "W", ifelse(GD<0, "L", "D")),
                         venue="away") 
-
 
 dfboth <- rbind(dfhome,dfaway) %>% select(Date, Season, tier, team, opp, GF, GA, GD)
 
