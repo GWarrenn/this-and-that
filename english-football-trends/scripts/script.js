@@ -205,7 +205,7 @@ function plotResults(team,input_season,input_fill){
 
         var x = d3.scaleLinear()
             .range([margin.left , width - margin.right])
-            .domain([1893,2019]);
+            .domain([1893,2026]);
 
         var xAxis = d3.axisTop()
             .ticks(10)
